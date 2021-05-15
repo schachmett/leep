@@ -59,7 +59,6 @@ def main():
         plt.show()
         return
 
-
     if args.vectors is not None:
         # if the unit vectors are given in the command line, use them to make the UC
         uc = UC(args.vectors[:2], args.vectors[2:])
