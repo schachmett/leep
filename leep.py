@@ -301,7 +301,7 @@ class UC:
         # maximal indices that can be in the image
         i1, j1, _ = np.dot(np.linalg.inv(base), np.array([size, size, 0]))
         i2, j2, _ = np.dot(np.linalg.inv(base), np.array([-size, size, 0]))
-        i_max, j_max = int(max(np.abs([i1, i2])) / 2), int(max(np.abs([j1, j2])) / 2)
+        i_max, j_max = int(max(np.abs([i1, i2])) / 2 + 1), int(max(np.abs([j1, j2])) / 2 + 1)
 
         # minimal distances of atoms in x and y-direction, detect if atom is (barely) in image
         xs, ys = abs(max(*base[0, :2], key=abs)), abs(max(*base[1, :2], key=abs))
