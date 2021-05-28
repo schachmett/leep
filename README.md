@@ -49,3 +49,5 @@ optional arguments:
 
 ![](doc/2012.png)
 
+
+<!-- equations by https://www.codecogs.com/eqnedit.php -->

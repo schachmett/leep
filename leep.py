@@ -9,9 +9,11 @@ import sys
 from signal import signal, SIGINT
 import re
 import argparse
+import copy
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import colors
 
 
 DEFAULTS = {
@@ -24,8 +26,8 @@ DEFAULTS = {
     "ru": [[2.71, 0], [2.71 * np.cos(2 * np.pi / 3), 2.71 * np.sin(2 * np.pi / 3)]],
     "ruo2-110": [[3.11, 0], [0, 6.38]],
     "ruo2-100": [[3.11, 0], [0, 4.49]],
-    "vo2-100": [[2.8514, 0], [0, 4.5546]],
-    "vo2-110": [[2.8514, 0], [0, 4.5546 * np.sqrt(2)]]
+    "vo2-100": [[0, -2.8514], [4.5546, 0]],
+    "vo2-110": [[0, -2.8514], [4.5546 * np.sqrt(2), 0]]
 }
 
 
@@ -40,32 +42,32 @@ def main():
     phases = []
 
     if args.special:
-        uc_ru = UC(*DEFAULTS["ru"], s=10)
+        uc_ru = UC(*DEFAULTS["ru"], s=1)
+        phases.append(uc_ru)
         if "110" in args.special[0].lower():
             if "ruo2" in args.special[0].lower():
-                phases.append(UC(*DEFAULTS["ruo2-110"], parent=uc_ru, color="r", s=30))
+                phases.append(UC(*DEFAULTS["ruo2-110"], parent=uc_ru, color="b", s=0.6))
             if "vo2" in args.special[0].lower():
-                phases.append(UC(*DEFAULTS["vo2-110"], parent=uc_ru, color="r", s=30))
+                phases.append(UC(*DEFAULTS["vo2-110"], parent=uc_ru, color="b", s=0.6))
         if "100" in args.special[0].lower():
             if "ruo2" in args.special[0].lower():
-                phases.append(UC(*DEFAULTS["ruo2-100"], parent=uc_ru, color="r", s=30))
+                phases.append(UC(*DEFAULTS["ruo2-100"], parent=uc_ru, color="b", s=0.6))
             if "vo2" in args.special[0].lower():
-                phases.append(UC(*DEFAULTS["vo2-100"], parent=uc_ru, color="r", s=30))
-        for phase in phases.copy():
-            for color, theta in zip(("g", "b"), (2 * np.pi / 3, 4 * np.pi / 3)):
-                phases.append(phase.get_reconstruction(theta=theta, color=color))
-        phases.append(uc_ru)
+                phases.append(UC(*DEFAULTS["vo2-100"], parent=uc_ru, color="b", s=0.6))
+        for phase in phases[1:].copy():
+            for color, theta in zip(("g", "r"), (2 * np.pi / 3, 4 * np.pi / 3)):
+                phases.append(phase.get_reconstruction(theta=theta, color=color, label="rot_dom"))
         plot_phases(phases, title=args.special[0])
         plt.show()
         return
 
     if args.vectors is not None:
         # if the unit vectors are given in the command line, use them to make the UC
-        uc = UC(args.vectors[:2], args.vectors[2:])
+        uc = UC(args.vectors[:2], args.vectors[2:], label="substrate")
         title += "a1=" + str(args.vectors[:2]) + ", a2=" + str(args.vectors[2:])
     else:
         # else, use one of the bases defined in DEFAULTS
-        uc = UC(*DEFAULTS[args.base[0]])
+        uc = UC(*DEFAULTS[args.base[0]], label="substrate")
         title += args.base[0]
     # add the UC to the list of phases
     phases.append(uc)
@@ -79,13 +81,14 @@ def main():
     for rec in args.woods + matrices:
         # make a reconstruction unit cell from rec, which is either a woods
         # notation or a matrix
-        reconstruction = uc.get_reconstruction(rec, color="b", s=30)
+        reconstruction = uc.get_reconstruction(rec, color="b", s=0.6, label="rec")
         title += " | " + str(rec) + " reconstr."
         # add the reconstruction to the list of phases
         phases.append(reconstruction)
         for theta in thetas:
             # if rotational domains are required, add them
-            phases.append(reconstruction.get_reconstruction(theta=theta))
+            rot_dom = reconstruction.get_reconstruction(theta=theta, label="rot_dom")
+            phases.append(rot_dom)
 
     if args.rotations[0] > 1:
         title += " | " + str(args.rotations[0]) + " rot. dom."
@@ -93,12 +96,12 @@ def main():
     # do the plotting
     plot_phases(phases, title=title)
 
-    # save an image if the argument is given
     if args.output:
+        # save an image if the argument is given
         plt.savefig(args.output)
-
-    # show the plot
-    plt.show()
+    else:
+        # show the plot
+        plt.show()
 
 
 
@@ -141,18 +144,19 @@ def parse_args(arglist):
 
 
 def plot_phases(phases, title=""):
-    # make 4 axes with a 1:1 aspect ratio
-    fig, axes = plt.subplots(2, 2, figsize=(8, 8))
+    # make 2 axes with a 1:1 aspect ratio
+    fig, axes = plt.subplots(1, 2, figsize=(8, 4))
     for ax in axes.flatten():
         ax.set_aspect("equal", adjustable="datalim")
     fig.suptitle(title)
 
     # plot each phases' base and pattern in reciprocal and in real space
     for phase in phases:
-        phase.plot_base(ax=axes[0, 0])
-        phase.plot_base(rec=True, ax=axes[1, 0])
-        phase.plot_pattern(ax=axes[0, 1])
-        phase.plot_pattern(rec=True, ax=axes[1, 1])
+        if not "rot_dom" in phase.label:
+            phase.plot_pattern(ax=axes[0])
+            phase.plot_base(ax=axes[0])
+        phase.plot_pattern(rec=True, ax=axes[1])
+        phase.plot_base(rec=True, ax=axes[1])
 
 
 class UC:
@@ -166,7 +170,7 @@ class UC:
     If a "parent" unit cell is given, its size can be used for the axes dimensions when plotting.
     The color and size of the pattern spots are given by color and s.
     """
-    def __init__(self, a1, a2, a3=None, parent=None, color="k", s=10):
+    def __init__(self, a1, a2, a3=None, parent=None, color="k", s=1, label=""):
         if a3 is None:
             a3 = np.array([0, 0, 1])
         a1 = _make_vector_3d(a1)
@@ -176,27 +180,32 @@ class UC:
         self._real_base = np.array([a1, a2, a3]).transpose()
         self._rec_base = np.linalg.inv(self.real_base).transpose() * 2 * np.pi
 
+        self.label = label
         if parent is None:
             parent = self
         self.parent = parent
         self.color = color
         self.s = s
 
-    def coords(self, x):
+    def coords(self, uvw):
         """Transform a lattice vector into cartesian coordinates."""
-        x = _make_vector_3d(x)
-        return np.dot(self.real_base, x)
+        uvw = _make_vector_3d(uvw)
+        return np.dot(self.real_base, uvw)
 
-    def rec_coords(self, y):
+    def rec_coords(self, hkl):
         """Transform a reciprocal lattice vector into cartesian coordinates."""
-        y = _make_vector_3d(y)
-        return np.dot(self.rec_base, y)
+        hkl = _make_vector_3d(hkl)
+        return np.dot(self.rec_base, hkl)
 
     @property
     def size(self):
         """Size of the unit cell."""
         a1, a2, a3 = self.real_base.transpose()
         return np.dot(a1, np.cross(a2, a3))
+        
+    def d(self, hkl):
+        """Lattice plane distance"""
+        return 2 * np.pi / np.linalg.norm(self.rec_coords(hkl))
 
     @property
     def is_2d(self):
@@ -249,68 +258,79 @@ class UC:
         assert self.is_2d
         if rec:
             base = self.rec_base
-            ax.set_title("Reciprocal base vectors")
         else:
             base = self.real_base
-            ax.set_title("Real base vectors")
 
         if ax is None:
             _, ax = plt.subplots()
             ax.set_aspect("equal")
-
-        ax.scatter(base[0, :2], base[1, :2], color="w")
-        ax.scatter([0], [0], color="k")
 
         ax.annotate(
             "", xy=(base[0, 0], base[1, 0]), xytext=(0, 0),
-            arrowprops=dict(arrowstyle="->", color=self.color))
+            arrowprops=dict(arrowstyle="-|>, head_width=0.4, head_length=1", color=self.color))
         ax.annotate(
             "", xy=(base[0, 1], base[1, 1]), xytext=(0, 0),
-            arrowprops=dict(arrowstyle="->", color=self.color))
+            arrowprops=dict(arrowstyle="-|>, head_width=0.4, head_length=1", color=self.color))
+        ax.annotate(
+            "", xy=(base[0, 0] + base[0, 1], base[1, 0] + base[1, 1]), xytext=(base[0, 0], base[1, 0]),
+            arrowprops=dict(arrowstyle="-", linestyle="--", color=self.color))
+        ax.annotate(
+            "", xy=(base[0, 0] + base[0, 1], base[1, 0] + base[1, 1]), xytext=(base[0, 1], base[1, 1]),
+            arrowprops=dict(arrowstyle="-", linestyle="--", color=self.color))
         return ax
 
-    def plot_pattern(self, rec=False, ax=None, w=None, h=None):
+    def plot_pattern(self, rec=False, ax=None, ucs=None, d=None):
         """Plots the symmetry pattern generated by the unit cell.
         In reciprocal space, it will show the LEED pattern."""
         assert self.is_2d
+        if ucs is None:
+            if rec is True:
+                ucs = 3
+            else:
+                ucs = 10
+        
+        # find the minimal lattice plane distance and define the base
+        base = self.real_base
+        if d is None:
+            d = min(self.parent.d([1, 0]), self.parent.d([0, 1]))
         if rec:
             base = self.rec_base
-            ax.set_title("Reciprocal space")
-            s = 500 / self.s
-            if w is None:
-                w = 6 * np.pi / np.sqrt(self.parent.size)
-            if h is None:
-                h = 6 * np.pi / np.sqrt(self.parent.size)
-        else:
-            base = self.real_base
-            ax.set_title("Real space")
-            s = self.s
-            if w is None:
-                w = 10 * np.sqrt(self.parent.size)
-            if h is None:
-                h = 10 * np.sqrt(self.parent.size)
+            d = 2 * np.pi / d
+        size = ucs * d
+
+        # maximal indices that can be in the image
+        i1, j1, _ = np.dot(np.linalg.inv(base), np.array([size, size, 0]))
+        i2, j2, _ = np.dot(np.linalg.inv(base), np.array([-size, size, 0]))
+        i_max, j_max = int(max(np.abs([i1, i2])) / 2), int(max(np.abs([j1, j2])) / 2)
+
+        # minimal distances of atoms in x and y-direction, detect if atom is (barely) in image
+        xs, ys = abs(max(*base[0, :2], key=abs)), abs(max(*base[1, :2], key=abs))
+        def inside(p):
+            if abs(p[0]) < size / 2 + xs and abs(p[1]) < size / 2 + ys:
+                return True
+            return False
+
+        # find points to plot
+        points = []
+        for i in range(-i_max, i_max + 1):
+            for j in range(-j_max, j_max + 1):
+                y = np.dot(base, [i, j, 0])
+                if inside(y):
+                    points.append(y)
+        points = np.unique(np.array(points), axis=0)
 
         if ax is None:
             _, ax = plt.subplots()
             ax.set_aspect("equal")
+        ax.set_xlim(-size/2, size/2)
+        ax.set_ylim(-size/2, size/2)
 
-        x1, x2, _ = base.transpose()
-
-        i1, j1, _ = map(int, np.dot(np.linalg.inv(base), np.array([w, h, 0])))
-        i2, j2, _ = map(int, np.dot(np.linalg.inv(base), np.array([-w, h, 0])))
-        i_max = max(np.abs([i1, i2]))
-        j_max = max(np.abs([j1, j2]))
-
-        points = []
-        for i in range(-i_max, i_max + 1):
-            for j in range(-j_max, j_max + 1):
-                y = i * x1 + j * x2
-                if -w / 2 <= y[0] <= w / 2 and -h / 2 <= y[1] <= h / 2:
-                    points.append(y)
-        points = np.unique(np.array(points), axis=0)
-        ax.scatter(points[:, 0], points[:, 1], color=self.color, s=s)
-        ax.set_xlim(-w/2, w/2)
-        ax.set_ylim(-h/2, h/2)
+        if rec:
+            ax.scatter(points[:, 0], points[:, 1], color=self.color, s=self.s**3 * 250 / ucs)
+            ax.set_title("Reciprocal space")
+        else:
+            gauplot([(x, y) for x, y, _ in points], self.s * d, size=size*1.2, ax=ax, color=self.color)
+            ax.set_title("Real space")
         return ax
 
     @property
@@ -319,6 +339,23 @@ class UC:
     @property
     def rec_base(self):
         return self._rec_base
+
+
+def gauplot(centers, radius=5, size=20, ax=None, color="r", thresh=2):
+    """adapted from https://stackoverflow.com/questions/10958835"""
+    color = colors.to_rgb(color)
+    cmap_mat = np.array([np.linspace(c, 1, 256) for c in color]).T
+    cmap = colors.ListedColormap(cmap_mat)
+    cmap.set_bad(alpha=0)
+    
+    nx, ny = 1000.,1000.
+#    xgrid, ygrid = np.mgrid[-m:m:m*2/nx, -m:m:m*2/ny]
+    xgrid, ygrid = np.mgrid[-size/2:size/2:size/nx, -size/2:size/2:size/ny]
+    img = xgrid * 0 + np.nan
+    for center in centers:      # center[1]: y axis is negative, flip sign
+        atom = np.sqrt((xgrid - center[0])**2 + (ygrid + center[1])**2) / (radius / 2) * thresh
+        img[atom < thresh] = np.exp(-.5 * atom**2)[atom < thresh]
+    ax.imshow(img.T, cmap=cmap, extent=(-size/2, size/2, -size/2, size/2))
 
 
 def _make_vector_3d(x, third=0):
