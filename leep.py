@@ -36,6 +36,7 @@ DEFAULTS = {
     "ru": [[2.71, 0], [2.71 * np.cos(2 * np.pi / 3), 2.71 * np.sin(2 * np.pi / 3)]],
     "ruo2-110": [[3.11, 0], [0, 6.38]],
     "ruo2-100": [[3.11, 0], [0, 4.49]],
+    "ruo2-101": [[5.46, 0], [0, 4.49]],
     "vo2-100": [[2.8514, 0], [0, 4.5546]],
     "vo2-110": [[2.8514, 0], [0, 4.5546 * np.sqrt(2)]]
 }
@@ -66,10 +67,15 @@ def main():
 #                phases.append(UC(*DEFAULTS["ruo2-100"], theta=-4, parent=uc_ru, color="b", s=0.6))
             if "vo2" in args.special[0].lower():
                 phases.append(UC(*DEFAULTS["vo2-100"], parent=uc_ru, color="b", s=0.6))
+        if "101" in args.special[0].lower():
+            if "ruo2" in args.special[0].lower():
+                phases.append(UC(*DEFAULTS["ruo2-101"], parent=uc_ru, color="b", s=0.6, label="ruo2-101"))
         for phase in phases[1:].copy():
+            if "101" in phase.label:
+                continue
             for color, theta in zip(("y", "c"), (2 * np.pi / 3, 4 * np.pi / 3)):
                 phases.append(phase.get_reconstruction(theta=theta, color=color, label="rot_dom"))
-        plot_phases(phases, title=args.special[0], show_all=args.showall)
+        plot_phases(phases, title=args.special[0], show_all=args.showall, ucs_real=args.realsize[0])
         plt.show()
         return
 
@@ -127,7 +133,7 @@ def main():
         title += " and a mirror domain"
 
     # do the plotting
-    plot_phases(phases, title=title, show_all=args.showall)
+    plot_phases(phases, title=title, show_all=args.showall, real_size=args.realsize)
 
 #    plt.subplots_adjust(top=0.8)
     if args.output:
@@ -172,6 +178,8 @@ def parse_args(arglist):
         help="Number of rotational domains. Applies to all defined reconstructions."
              "If r is 2, the domain is mirrored at the h=k=1 direction")
     parser.add_argument(
+        "--realsize", type=int, nargs=1, default=[None], help="Size of real space pattern")
+    parser.add_argument(
         "-p", "--mirror", action="store_true", help="Show mirror domains.")
     parser.add_argument(
         "-o", "--output", type=str, help="Save image file.",
@@ -182,7 +190,7 @@ def parse_args(arglist):
     return args
 
 
-def plot_phases(phases, title="", show_all=False):
+def plot_phases(phases, title="", show_all=False, ucs_real=None):
     # make 2 axes with a 1:1 aspect ratio
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
     for ax in axes.flatten():
@@ -197,7 +205,7 @@ def plot_phases(phases, title="", show_all=False):
             color = phase.color
         if show_all or not "dom" in phase.label:
             phase.plot_base(ax=axes[0], color=color)
-            phase.plot_pattern(ax=axes[0])
+            phase.plot_pattern(ax=axes[0], ucs=ucs_real)
         phase.plot_base(rec=True, ax=axes[1], color=color)
         phase.plot_pattern(rec=True, ax=axes[1])
 
