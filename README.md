@@ -4,8 +4,9 @@ Usage:
 
 ```sh
 ./leep.py -h
-usage: leep.py [-h] [-b BASE | -v X1 Y1 X2 Y2 | -s SPECIAL] [-w WOODS]
-               [-m A11 A12 A21 A22] [-r ROTATIONS] [-o fname]
+usage: leep [-h] [-b BASE | -v X1 Y1 X2 Y2 | -s SPECIAL] [-w WOODS]
+            [-m A11 A12 A21 A22] [-r ROTATIONS] [--realsize REALSIZE] [-p]
+            [-o fname] [-a]
 
 leep.py visualizes reconstructions. If -b and -v are bothnot given, it assumes
 a square unit mesh
@@ -13,7 +14,7 @@ a square unit mesh
 optional arguments:
   -h, --help            show this help message and exit
   -b BASE, --base BASE  Real space base. Either one of
-                        'hex,square,rect,centered,monoclinic'.
+                        'hex,square,rect,centered,oblique'.
   -v X1 Y1 X2 Y2, --vectors X1 Y1 X2 Y2
                         Explicit base vectors explicitly (instead of 'BASE').
   -s SPECIAL, --special SPECIAL
@@ -26,9 +27,13 @@ optional arguments:
                         A reconstruction in matrix notation.
   -r ROTATIONS, --rotations ROTATIONS
                         Number of rotational domains. Applies to all defined
-                        reconstructions.
+                        reconstructions.If r is 2, the domain is mirrored at
+                        the h=k=1 direction
+  --realsize REALSIZE   Size of real space pattern
+  -p, --mirror          Show mirror domains.
   -o fname, --output fname
                         Save image file.
+  -a, --showall         show all domains in real space
 ```
 
 # Examples
