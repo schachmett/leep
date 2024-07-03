@@ -38,7 +38,7 @@ optional arguments:
 
 # Examples
 
-### Woods notation: ![](doc/s12.gif)
+### Woods notation: $(2\sqrt{3}\times2\sqrt{3})\text{R}30\degree$
 
 ```
 ./leep.py -b hex -w r12xr12r30
@@ -46,7 +46,7 @@ optional arguments:
 
 ![](doc/r12.png)
 
-### Matrix notation ![](doc/2012.gif) with three rotational domains
+### Matrix notation $\bigl(\begin{smallmatrix} 2 & 0 \\ 1 & 2 \end{smallmatrix}\bigr)$ with three rotational domains
 
 ```
 ./leep.py -b hex -m 2 0 1 2 -r 3 -o doc/2012.png
