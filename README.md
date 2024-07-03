@@ -38,21 +38,26 @@ optional arguments:
 
 # Examples
 
-### Woods notation: $(2\sqrt{3}\times2\sqrt{3})\text{R}30\degree$
+### Woods notation
 
-```
+For the $(2\sqrt{3}\times2\sqrt{3})\text{R}30\degree$ reconstruction:
+
+```bash
 ./leep.py -b hex -w r12xr12r30
 ```
 
 ![](doc/r12.png)
 
-### Matrix notation: $\begin{pmatrix} 2 & 0 \\ 1 & 2 \end{pmatrix}$ with three rotational domains
+### Matrix notation 
 
-```
+For the
+```math
+\begin{pmatrix} 2 & 0 \\ 1 & 2 \end{pmatrix}
+``` 
+reconstruction with three rotational domains:
+
+```bash
 ./leep.py -b hex -m 2 0 1 2 -r 3 -o doc/2012.png
 ```
 
 ![](doc/2012.png)
-
-
-<!-- equations by https://www.codecogs.com/eqnedit.php -->
