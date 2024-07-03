@@ -46,7 +46,7 @@ optional arguments:
 
 ![](doc/r12.png)
 
-### Matrix notation $\bigl(\begin{smallmatrix} 2 & 0 \\ 1 & 2 \end{smallmatrix}\bigr)$ with three rotational domains
+### Matrix notation: $\begin{pmatrix} 2 & 0 \\ 1 & 2 \end{pmatrix}$ with three rotational domains
 
 ```
 ./leep.py -b hex -m 2 0 1 2 -r 3 -o doc/2012.png
