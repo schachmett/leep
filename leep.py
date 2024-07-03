@@ -20,11 +20,17 @@ mpl.rcParams.update({
     "font.sans-serif": ["Ubuntu"],
     "font.size": 12,
     "axes.labelsize": "small",
-    "axes.titlesize": "small",
+    "axes.titlesize": "Large",
     "figure.titlesize": "small",
     "text.usetex": True,
     "text.latex.preamble": r"\usepackage{mathtools} \usepackage{sfmath} \usepackage{siunitx}"
 })
+
+SPACINGS = {
+    "RuO2-a": 4.4931,
+    "RuO2-c": 3.1064,
+    "Ru-a": 2.7059,
+}
 
 DEFAULTS = {
     "hex": [[1, 0], [np.cos(2 * np.pi / 3), np.sin(2 * np.pi / 3)]],
@@ -33,10 +39,13 @@ DEFAULTS = {
     "centered": [[1, 0], [0.5, 0.3]],
     "oblique": [[1, 0], [0.2, 1.3]],
 
-    "ru": [[2.71, 0], [2.71 * np.cos(2 * np.pi / 3), 2.71 * np.sin(2 * np.pi / 3)]],
-    "ruo2-110": [[3.11, 0], [0, 6.38]],
-    "ruo2-100": [[3.11, 0], [0, 4.49]],
-    "ruo2-101": [[5.46, 0], [0, 4.49]],
+    "ru": [
+        [SPACINGS["Ru-a"], 0], 
+        [SPACINGS["Ru-a"] * np.cos(2 * np.pi / 3), SPACINGS["Ru-a"] * np.sin(2 * np.pi / 3)]
+    ],
+    "ruo2-110": [[SPACINGS["RuO2-c"], 0], [0, SPACINGS["RuO2-a"] * np.sqrt(2)]],
+    "ruo2-100": [[SPACINGS["RuO2-c"], 0], [0, SPACINGS["RuO2-a"]]],
+    "ruo2-101": [[5.4624, 0], [0, SPACINGS["RuO2-a"]]],
     "vo2-100": [[2.8514, 0], [0, 4.5546]],
     "vo2-110": [[2.8514, 0], [0, 4.5546 * np.sqrt(2)]]
 }
@@ -53,30 +62,83 @@ def main():
     phases = []
 
     if args.special:
-        uc_ru = UC(*DEFAULTS["ru"], s=1, label="substrate")
+        uc_ru = UC(*DEFAULTS["ru"], s=1, label="substrate", color="#F0E442") #8d840b
         phases.append(uc_ru)
-        if "110" in args.special[0].lower():
-            if "ruo2" in args.special[0].lower():
-                phases.append(UC(*DEFAULTS["ruo2-110"], parent=uc_ru, color="b", s=0.6))
-            if "vo2" in args.special[0].lower():
-                phases.append(UC(*DEFAULTS["vo2-110"], parent=uc_ru, color="b", s=0.6))
-        if "100" in args.special[0].lower():
-            if "ruo2" in args.special[0].lower():
-                phases.append(UC(*DEFAULTS["ruo2-100"], parent=uc_ru, color="b", s=0.6))
+        ruo2_100 = UC(*DEFAULTS["ruo2-100"], parent=uc_ru, color="#D55E00ee", s=0.8)
+        small_angle = 4.658866
+        ruo2_100a = ruo2_100.get_reconstruction(theta=-small_angle*np.pi/180)
+        ruo2_100b = ruo2_100.get_reconstruction(theta=small_angle*np.pi/180)
+        vo2_100 = UC(*DEFAULTS["vo2-100"], parent=uc_ru, color="#8800ffbb", s=0.9)
+        ruo2_110 = UC(*DEFAULTS["ruo2-110"], parent=uc_ru, color="#000000ee", s=0.6)
+        vo2_110 = UC(*DEFAULTS["vo2-110"], parent=uc_ru, color="#0000f0ee", s=0.6)
+        
+        if "doubles" in args.special[0].lower():
+            for p in (ruo2_110, ruo2_100a, ruo2_100b, vo2_100):
+                for i, theta in enumerate((0, 2*np.pi/3, 4*np.pi/3)):
+                    label = "rot_dom"
+                    if i == 0:
+                        label = "show"
+                    phases.append(p.get_reconstruction(theta=theta, label=label, color=p.color))
+        if "ruo2-100" in args.special[0].lower():
+#            for p in (ruo2_100a, ruo2_100b):
+            for p in (ruo2_100,):
+                for i, theta in enumerate((0, 2*np.pi/3, 4*np.pi/3)):
+                    label = "rot_dom"
+                    if i == 0 and p == ruo2_100b:
+                        label = "show"
+                    phases.append(p.get_reconstruction(theta=theta, label=label, color=p.color))
+        if "ruo2-110" in args.special[0].lower():
+            for i, theta in enumerate((0, 2*np.pi/3, 4*np.pi/3)):
+                label = "rot_dom"
+                if i == 0:
+                    label = "show"
+                phases.append(ruo2_110.get_reconstruction(theta=theta, label=label, color=ruo2_110.color))
+        if "vo2-110" in args.special[0].lower():
+            for i, theta in enumerate((0, 2*np.pi/3, 4*np.pi/3)):
+                label = "rot_dom"
+                if i == 0:
+                    label = "show"
+                phases.append(vo2_110.get_reconstruction(theta=theta, label=label, color=vo2_110.color))
+        if "vo2-100" in args.special[0].lower():
+            for i, theta in enumerate((0, 2*np.pi/3, 4*np.pi/3)):
+                label = "rot_dom"
+                if i == 0:
+                    label = "show"
+                phases.append(vo2_100.get_reconstruction(theta=theta, label=label, color=vo2_100.color))
+            
+#        if "110" in args.special[0].lower():
+#            if "ruo2" in args.special[0].lower():
+#                phases.append(UC(*DEFAULTS["ruo2-110"], parent=uc_ru, color="b", s=0.6))
+#            if "vo2" in args.special[0].lower():
+#                phases.append(UC(*DEFAULTS["vo2-110"], parent=uc_ru, color="b", s=0.6))
+#        if "100" in args.special[0].lower():
+#            if "smallangle" in args.special[0].lower():
 #                phases.append(UC(*DEFAULTS["ruo2-100"], theta=4, parent=uc_ru, color="b", s=0.6))
-#                phases.append(UC(*DEFAULTS["ruo2-100"], theta=-4, parent=uc_ru, color="b", s=0.6))
-            if "vo2" in args.special[0].lower():
-                phases.append(UC(*DEFAULTS["vo2-100"], parent=uc_ru, color="b", s=0.6))
-        if "101" in args.special[0].lower():
-            if "ruo2" in args.special[0].lower():
-                phases.append(UC(*DEFAULTS["ruo2-101"], parent=uc_ru, color="b", s=0.6, label="ruo2-101"))
-        for phase in phases[1:].copy():
-            if "101" in phase.label:
-                continue
-            for color, theta in zip(("y", "c"), (2 * np.pi / 3, 4 * np.pi / 3)):
-                phases.append(phase.get_reconstruction(theta=theta, color=color, label="rot_dom"))
-        plot_phases(phases, title=args.special[0], show_all=args.showall, ucs_real=args.realsize[0])
-        plt.show()
+##                phases.append(UC(*DEFAULTS["ruo2-100"], theta=-4, parent=uc_ru, color="b", s=0.6))
+#            if "ruo2" in args.special[0].lower():
+#                phases.append(UC(*DEFAULTS["ruo2-100"], parent=uc_ru, color="b", s=0.6))
+#            if "vo2" in args.special[0].lower():
+#                phases.append(UC(*DEFAULTS["vo2-100"], parent=uc_ru, color="b", s=0.6))
+#        if "101" in args.special[0].lower():
+#            if "ruo2" in args.special[0].lower():
+#                phases.append(UC(*DEFAULTS["ruo2-101"], parent=uc_ru, color="b", s=0.6, label="ruo2-101"))
+        #for phase in phases[1:].copy():
+        #    if "101" in phase.label:
+        #        continue
+        #    for color, theta in zip(("y", "c"), (2 * np.pi / 3, 4 * np.pi / 3)):
+        #        phases.append(phase.get_reconstruction(theta=theta, color=color, label="rot_dom"))
+        plot_phases(
+            phases, 
+            title="", #args.special[0], 
+            show_base=True, show_all=args.showall, 
+            ucs_real=args.realsize[0]
+        )
+        if args.output:
+            # save an image if the argument is given
+            plt.savefig(args.output, bbox_inches="tight", dpi=150)
+        else:
+            # show the plot
+            plt.show()
         return
 
     if args.vectors is not None:
@@ -133,12 +195,12 @@ def main():
         title += " and a mirror domain"
 
     # do the plotting
-    plot_phases(phases, title=title, show_all=args.showall, real_size=args.realsize)
+    plot_phases(phases, title=title, show_all=args.showall, ucs_real=args.realsize[0])
 
 #    plt.subplots_adjust(top=0.8)
     if args.output:
         # save an image if the argument is given
-        plt.savefig(args.output)
+        plt.savefig(args.output, dpi=300)
     else:
         # show the plot
         plt.show()
@@ -190,7 +252,7 @@ def parse_args(arglist):
     return args
 
 
-def plot_phases(phases, title="", show_all=False, ucs_real=None):
+def plot_phases(phases, title="", show_all=False, ucs_real=None, show_base=True):
     # make 2 axes with a 1:1 aspect ratio
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
     for ax in axes.flatten():
@@ -204,9 +266,11 @@ def plot_phases(phases, title="", show_all=False, ucs_real=None):
         else:
             color = phase.color
         if show_all or not "dom" in phase.label:
-            phase.plot_base(ax=axes[0], color=color)
+            if show_base:
+                phase.plot_base(ax=axes[0], color=color)
             phase.plot_pattern(ax=axes[0], ucs=ucs_real)
-        phase.plot_base(rec=True, ax=axes[1], color=color)
+        if show_base:
+            phase.plot_base(rec=True, ax=axes[1], color=color)
         phase.plot_pattern(rec=True, ax=axes[1])
 
 
@@ -319,8 +383,10 @@ class UC:
         assert self.is_2d
         if rec:
             base = self.rec_base
+            hw, hl = 0.4, 1
         else:
             base = self.real_base
+            hw, hl = 0.1, 0.2
         if color is None:
             color = self.color
 
@@ -334,9 +400,9 @@ class UC:
         elongation = 1.015
 
         ax.annotate("", xy=s10 * elongation, xytext=s00,
-                    arrowprops=dict(arrowstyle="-|>, head_width=0.4, head_length=1", color=color))
+                    arrowprops=dict(arrowstyle=f"-|>, head_width={hw}, head_length={hl}", color=color))
         ax.annotate("", xy=s01 * elongation, xytext=s00,
-                    arrowprops=dict(arrowstyle="-|>, head_width=0.4, head_length=1", color=color))
+                    arrowprops=dict(arrowstyle=f"-|>, head_width={hw}, head_length={hl}", color=color))
         ax.annotate("", xy=s01 * elongation + s10, xytext=s10,
                     arrowprops=dict(arrowstyle="-", linestyle=(0, (3, 4)), color=color))
         ax.annotate("", xy=s01 + s10 * elongation, xytext=s01,
@@ -370,7 +436,7 @@ class UC:
         # minimal distances of atoms in x and y-direction, detect if atom is (barely) in image
         xs, ys = abs(max(*base[0, :2], key=abs)), abs(max(*base[1, :2], key=abs))
         def inside(p):
-            if abs(p[0]) < size / 2 + xs and abs(p[1]) < size / 2 + ys:
+            if abs(p[0]) < size / 2 + xs * 2 and abs(p[1]) < size / 2 + ys * 2:
                 return True
             return False
 
@@ -390,11 +456,19 @@ class UC:
         ax.set_ylim(-size/2, size/2)
 
         if rec:
-            ax.scatter(points[:, 0], points[:, 1], color=self.color, s=self.s**3 * 250 / ucs)
-            ax.set_title("Reciprocal space", y=-0.12)
+            ax.scatter(
+                points[:, 0], points[:, 1], 
+                color=self.color, edgecolors="k", 
+                s=self.s**3 * 250 / ucs
+            )
+            ax.set_title(r"Reciprocal space, axes in \si{\per\angstrom}", y=-0.12)
         else:
-            gauplot([(x, y) for x, y, _ in points], self.s * d, size=size*1.2, ax=ax, color=self.color)
-            ax.set_title("Real space", y=-0.12)
+            gauplot(
+                [(x, y) for x, y, _ in points], 
+                d * self.s, size=size*1.2, 
+                ax=ax, color=self.color
+            )
+            ax.set_title(r"Real space, axes in \si{\angstrom}", y=-0.12)
         return ax
 
     @property
@@ -408,7 +482,8 @@ class UC:
 def gauplot(centers, radius=5, size=20, ax=None, color="r", thresh=3):
     """adapted from https://stackoverflow.com/questions/10958835"""
     color = mpl.colors.to_rgb(color)
-    cmap_mat = np.array([np.linspace(c, 1, 256) for c in color]).T
+#    cmap_mat = np.array([np.linspace(c * 0.5, min(c*1.5, 0.99), 256) for c in color]).T
+    cmap_mat = np.array([np.linspace(c, 0.8, 256) for c in color]).T
     cmap = mpl.colors.ListedColormap(cmap_mat)
     cmap.set_bad(alpha=0)
     
@@ -501,9 +576,9 @@ def _parse_woods(M, theta=0):
             theta = np.pi * float(t[-1]) / 180
 
         if M.startswith("c"):
-            if a != b:
-                raise ValueError(f"Unknown reconstruction {M}")
-            M = np.array([[a, 0], [1, 1]])
+#            if a != b:
+#                raise ValueError(f"Unknown reconstruction {M}")
+            M = np.array([[a, 0], [a / 2, b / 2]])
         else:
             M = np.array([[a, 0], [0, b]])
     
